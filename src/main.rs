@@ -38,16 +38,29 @@ fn run(
                 if key.kind != KeyEventKind::Press {
                     continue;
                 }
-                match key.code {
-                    KeyCode::Char('q') => break,
-                    KeyCode::Down | KeyCode::Char('j') => app.next(),
-                    KeyCode::Up | KeyCode::Char('k') => app.prev(),
-                    KeyCode::Enter => app.play_selected(),
-                    KeyCode::Char('p') => app.toggle_pause(),
-                    KeyCode::Char('s') => app.stop(),
-                    KeyCode::Right | KeyCode::Char('l') => app.volume_up(),
-                    KeyCode::Left | KeyCode::Char('h') => app.volume_down(),
-                    _ => {}
+                if app.filter_active {
+                    match key.code {
+                        KeyCode::Esc => app.clear_filter(),
+                        KeyCode::Enter => { app.exit_filter(); app.play_selected(); }
+                        KeyCode::Backspace => app.pop_filter_char(),
+                        KeyCode::Down => app.next(),
+                        KeyCode::Up => app.prev(),
+                        KeyCode::Char(c) => app.push_filter_char(c),
+                        _ => {}
+                    }
+                } else {
+                    match key.code {
+                        KeyCode::Char('q') => break,
+                        KeyCode::Char('/') => app.enter_filter(),
+                        KeyCode::Down | KeyCode::Char('j') => app.next(),
+                        KeyCode::Up | KeyCode::Char('k') => app.prev(),
+                        KeyCode::Enter => app.play_selected(),
+                        KeyCode::Char('p') => app.toggle_pause(),
+                        KeyCode::Char('s') => app.stop(),
+                        KeyCode::Right | KeyCode::Char('l') => app.volume_up(),
+                        KeyCode::Left | KeyCode::Char('h') => app.volume_down(),
+                        _ => {}
+                    }
                 }
             }
         }

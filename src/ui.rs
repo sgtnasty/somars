@@ -7,6 +7,27 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
 };
 
+fn highlight_match<'a>(text: &str, query: &str) -> Vec<Span<'a>> {
+    if query.is_empty() {
+        return vec![Span::raw(text.to_owned())];
+    }
+    let lower = text.to_lowercase();
+    let lower_q = query.to_lowercase();
+    if let Some(pos) = lower.find(&lower_q) {
+        let end = pos + lower_q.len();
+        vec![
+            Span::raw(text[..pos].to_owned()),
+            Span::styled(
+                text[pos..end].to_owned(),
+                Style::default().fg(Color::Black).bg(Color::Yellow),
+            ),
+            Span::raw(text[end..].to_owned()),
+        ]
+    } else {
+        vec![Span::raw(text.to_owned())]
+    }
+}
+
 pub fn render(f: &mut Frame, app: &mut App) {
     let area = f.area();
 
@@ -26,39 +47,83 @@ pub fn render(f: &mut Frame, app: &mut App) {
 }
 
 fn render_station_list(f: &mut Frame, app: &mut App, area: Rect) {
-    let items: Vec<ListItem> = app
-        .channels
+    let filtered = app.filtered_indices();
+    let show_search = app.filter_active || !app.filter.is_empty();
+
+    let title = if app.filter.is_empty() {
+        format!(" Stations ({}) ", app.channels.len())
+    } else {
+        format!(" Stations ({}/{}) ", filtered.len(), app.channels.len())
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(title)
+        .title_style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        );
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let (search_area, list_area) = if show_search {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(1), Constraint::Min(0)])
+            .split(inner);
+        (Some(chunks[0]), chunks[1])
+    } else {
+        (None, inner)
+    };
+
+    if let Some(sa) = search_area {
+        let cursor = if app.filter_active { "█" } else { "" };
+        let search_style = if app.filter_active {
+            Style::default().fg(Color::White).bg(Color::DarkGray)
+        } else {
+            Style::default().fg(Color::Yellow)
+        };
+        let search = Paragraph::new(Line::from(Span::styled(
+            format!("/ {}{}", app.filter, cursor),
+            search_style,
+        )));
+        f.render_widget(search, sa);
+    }
+
+    let query = app.filter.clone();
+    let now_playing = app.now_playing_idx;
+    let items: Vec<ListItem> = filtered
         .iter()
-        .enumerate()
-        .map(|(i, ch)| {
-            let is_playing = app.now_playing_idx == Some(i);
-            let style = if is_playing {
+        .map(|&ci| {
+            let ch = &app.channels[ci];
+            let is_playing = now_playing == Some(ci);
+            let base_style = if is_playing {
                 Style::default()
                     .fg(Color::Green)
                     .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(Color::White)
             };
-            ListItem::new(Line::from(vec![Span::styled(ch.title.clone(), style)]))
+            let mut spans = highlight_match(&ch.title, &query);
+            if is_playing {
+                spans = spans
+                    .into_iter()
+                    .map(|s| {
+                        let merged = base_style.patch(s.style);
+                        s.style(merged)
+                    })
+                    .collect();
+            }
+            ListItem::new(Line::from(spans))
         })
         .collect();
 
-    let title = format!(" Stations ({}) ", app.channels.len());
     let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(title)
-                .title_style(
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                ),
-        )
         .highlight_style(Style::default().bg(Color::DarkGray))
         .highlight_symbol("> ");
 
-    f.render_stateful_widget(list, area, &mut app.list_state);
+    f.render_stateful_widget(list, list_area, &mut app.list_state);
 }
 
 fn render_station_detail(f: &mut Frame, app: &mut App, area: Rect) {
@@ -181,12 +246,13 @@ fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
         "░".repeat(10 - filled),
     );
 
+    let help_len = if app.filter_active { 52 } else { 80 };
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Min(0),
             Constraint::Length(18),
-            Constraint::Length(62),
+            Constraint::Length(help_len),
         ])
         .split(area);
 
@@ -210,8 +276,13 @@ fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
     ]));
     f.render_widget(volume, chunks[1]);
 
+    let help_text = if app.filter_active {
+        "[↑↓] Nav  [↵] Play+Exit  [Esc] Clear  [type] Filter"
+    } else {
+        "[↑↓/jk] Nav  [↵] Play  [p] Pause  [s] Stop  [/] Search  [←→] Vol  [q] Quit"
+    };
     let help = Paragraph::new(Line::from(Span::styled(
-        "[↑↓/jk] Nav  [↵] Play  [p] Pause  [s] Stop  [←→/hl] Vol  [q] Quit",
+        help_text,
         Style::default().fg(Color::DarkGray),
     )));
     f.render_widget(help, chunks[2]);
