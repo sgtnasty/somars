@@ -87,6 +87,52 @@ src/
 7. Stop kills the mpv child process and removes the socket file.
 8. Filter mode computes `filtered_indices()` on every keypress — a `Vec<usize>` of indices into the full channel list that match the query against title, genre, and description. The `ListState` cursor indexes into this filtered view; `now_playing_idx` always refers to the full list so the playing indicator survives filter changes.
 
+## Flow Diagrams
+
+### Event loop
+
+```mermaid
+flowchart TD
+    A([Start]) --> B{mpv in PATH?}
+    B -- No --> C([Exit with error])
+    B -- Yes --> D["Fetch channels\napi.somafm.com"]
+    D --> E[Init ratatui TUI]
+    E --> F[Render frame]
+    F --> G[app.tick]
+    G --> H{Key event\nwithin 100 ms?}
+    H -- No --> F
+    H -- "Yes · filter mode" --> I{Key}
+    H -- "Yes · normal mode" --> J{Key}
+    I -- "Esc" --> ClearFilter[clear_filter] --> F
+    I -- "Enter" --> PlayExit[exit_filter + play_selected] --> F
+    I -- "Backspace" --> PopChar[pop_filter_char] --> F
+    I -- "char" --> PushChar[push_filter_char] --> F
+    I -- "↑ / ↓" --> NavF[prev / next] --> F
+    J -- "q" --> K([Restore TUI · exit])
+    J -- "/" --> EnterFilter[enter_filter] --> F
+    J -- "↑↓ / jk" --> Nav[prev / next] --> F
+    J -- "Enter" --> Play[play_selected] --> F
+    J -- "p" --> Pause[toggle_pause] --> F
+    J -- "s" --> Stop[stop] --> F
+    J -- "← → / hl" --> Vol[volume_down / up] --> F
+```
+
+### tick internals (~100 ms)
+
+```mermaid
+flowchart TD
+    A([tick]) --> B[player.check_alive]
+    B --> C{mpv exited\non its own?}
+    C -- Yes --> D["Clear now_playing_idx\nstatus ← 'Stream ended'"]
+    C -- No --> E{"is_playing &\ntick % 20 == 0?"}
+    D --> Z([done])
+    E -- No --> Z
+    E -- Yes --> G["Query mpv IPC\nmetadata/by-key/icy-title"]
+    G --> H{Title received?}
+    H -- No --> Z
+    H -- Yes --> I[Update now_playing_title] --> Z
+```
+
 ## API Schema
 
 Station data comes from the unofficial SomaFM JSON endpoint:
