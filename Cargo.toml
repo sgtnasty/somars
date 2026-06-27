@@ -3,6 +3,7 @@ name = "somars"
 version = "0.1.0"
 edition = "2021"
 description = "Terminal UI player for SomaFM internet radio"
+license = "MIT"
 
 [[bin]]
 name = "somars"
