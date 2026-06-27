@@ -3,20 +3,20 @@
 A terminal UI player for [SomaFM](https://somafm.com) internet radio, written in Rust.
 
 ```
- Stations (60)          Station Info
+ Stations (3/60)        Station Info
 ┌──────────────────────┬──────────────────────────────────────────┐
-│ > Beat Blender       │ Title:       Groove Salad                │
-│   Boot Liquor        │ Genre:       ambient                     │
-│   Covers             │ DJ:          SomaFM                      │
-│   Deep Space One     │ Listeners:   1899                        │
-│   DEF CON Radio      │ Now Playing: Artist - Track Name         │
-│   Drone Zone         │ Quality:     highest (MP3)               │
-│ ♪ Groove Salad       │                                          │
-│   Indie Pop Rocks!   │ Description:                             │
-│   Secret Agent       │ A nicely chilled plate of ambient/       │
-│   ...                │ downtempo beats and grooves.             │
+│ / groove█            │ Title:       Groove Salad                │
+│ > Groove Salad       │ Genre:       ambient                     │
+│   Groove Salad 2     │ DJ:          SomaFM                      │
+│   Groove Salad Clssc │ Listeners:   1899                        │
+│                      │ Now Playing: Artist - Track Name         │
+│                      │ Quality:     highest (MP3)               │
+│                      │                                          │
+│                      │ Description:                             │
+│                      │ A nicely chilled plate of ambient/       │
+│                      │ downtempo beats and grooves.             │
 └──────────────────────┴──────────────────────────────────────────┘
-▶ Playing: Groove Salad     [↑↓/jk] Nav  [Enter] Play  [p] Pause  [s] Stop  [q] Quit
+▶ Playing: Groove Salad  ██████████  80%  [↑↓] Nav  [↵] Play+Exit  [Esc] Clear  [type] Filter
 ```
 
 ## Requirements
@@ -41,6 +41,8 @@ cargo run --release
 
 ## Key Bindings
 
+### Normal mode
+
 | Key | Action |
 |-----|--------|
 | `↑` / `k` | Move selection up |
@@ -48,7 +50,19 @@ cargo run --release
 | `Enter` | Play selected station |
 | `p` | Pause / resume |
 | `s` | Stop playback |
+| `←` / `h` | Volume down 5% |
+| `→` / `l` | Volume up 5% |
+| `/` | Enter search/filter mode |
 | `q` | Quit |
+
+### Filter mode (after pressing `/`)
+
+| Key | Action |
+|-----|--------|
+| type | Narrow station list (matches title, genre, description) |
+| `↑` / `↓` | Navigate filtered results |
+| `Enter` | Play highlighted station and exit filter |
+| `Esc` | Clear filter and return to full list |
 
 ## Architecture
 
@@ -66,8 +80,9 @@ src/
 2. The ratatui TUI is initialized with a crossterm backend (alternate screen, raw mode).
 3. The event loop polls for keystrokes every 100 ms and calls `app.tick()` to detect if mpv has exited.
 4. On `Enter`, `player::Player::play()` spawns `mpv` with `--no-video` and `--input-ipc-server` pointing to a per-process UNIX socket at `/tmp/somars-<pid>.sock`.
-5. Pause/resume sends JSON commands to the mpv IPC socket (`set_property pause true/false`).
+5. Pause/resume and volume changes send JSON commands to the mpv IPC socket (`set_property pause`/`volume`).
 6. Stop kills the mpv child process and removes the socket file.
+7. Filter mode computes `filtered_indices()` on every keypress — a `Vec<usize>` of indices into the full channel list that match the query against title, genre, and description. The `ListState` cursor indexes into this filtered view; `now_playing_idx` always refers to the full list so the playing indicator survives filter changes.
 
 ## API Schema
 
