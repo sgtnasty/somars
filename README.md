@@ -1,5 +1,7 @@
 # somars
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A terminal UI player for [SomaFM](https://somafm.com) internet radio, written in Rust.
 
 ```
