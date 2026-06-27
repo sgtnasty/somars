@@ -91,6 +91,16 @@ impl App {
         self.status_msg = "Stopped".into();
     }
 
+    pub fn volume_up(&mut self) {
+        let vol = (self.player.volume + 5).min(100);
+        self.player.set_volume(vol);
+    }
+
+    pub fn volume_down(&mut self) {
+        let vol = self.player.volume.saturating_sub(5);
+        self.player.set_volume(vol);
+    }
+
     pub fn tick(&mut self) {
         self.player.check_alive();
         if !self.player.is_playing() && self.now_playing_idx.is_some() {

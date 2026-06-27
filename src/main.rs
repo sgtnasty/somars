@@ -45,6 +45,8 @@ fn run(
                     KeyCode::Enter => app.play_selected(),
                     KeyCode::Char('p') => app.toggle_pause(),
                     KeyCode::Char('s') => app.stop(),
+                    KeyCode::Right | KeyCode::Char('l') => app.volume_up(),
+                    KeyCode::Left | KeyCode::Char('h') => app.volume_down(),
                     _ => {}
                 }
             }

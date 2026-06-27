@@ -173,9 +173,21 @@ fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
         format!("{} {}", icon, app.status_msg)
     };
 
+    let vol = app.player.volume;
+    let filled = (vol as usize * 10 / 100).min(10);
+    let vol_bar: String = format!(
+        "{}{}",
+        "█".repeat(filled),
+        "░".repeat(10 - filled),
+    );
+
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Min(0), Constraint::Length(58)])
+        .constraints([
+            Constraint::Min(0),
+            Constraint::Length(18),
+            Constraint::Length(62),
+        ])
         .split(area);
 
     let status = Paragraph::new(Line::from(vec![Span::styled(
@@ -184,9 +196,23 @@ fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
     )]));
     f.render_widget(status, chunks[0]);
 
+    let vol_color = if vol >= 80 {
+        Color::Yellow
+    } else {
+        Color::Cyan
+    };
+    let volume = Paragraph::new(Line::from(vec![
+        Span::styled(vol_bar, Style::default().fg(vol_color)),
+        Span::styled(
+            format!(" {:3}%", vol),
+            Style::default().fg(Color::White),
+        ),
+    ]));
+    f.render_widget(volume, chunks[1]);
+
     let help = Paragraph::new(Line::from(Span::styled(
-        "[↑↓/jk] Nav  [Enter] Play  [p] Pause  [s] Stop  [q] Quit",
+        "[↑↓/jk] Nav  [↵] Play  [p] Pause  [s] Stop  [←→/hl] Vol  [q] Quit",
         Style::default().fg(Color::DarkGray),
     )));
-    f.render_widget(help, chunks[1]);
+    f.render_widget(help, chunks[2]);
 }

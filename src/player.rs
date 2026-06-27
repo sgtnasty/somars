@@ -7,6 +7,7 @@ pub struct Player {
     child: Option<Child>,
     socket_path: String,
     pub paused: bool,
+    pub volume: u8,
 }
 
 impl Player {
@@ -15,6 +16,15 @@ impl Player {
             child: None,
             socket_path: format!("/tmp/somars-{}.sock", std::process::id()),
             paused: false,
+            volume: 80,
+        }
+    }
+
+    pub fn set_volume(&mut self, vol: u8) {
+        self.volume = vol;
+        if self.is_playing() {
+            let cmd = format!(r#"{{"command":["set_property","volume",{}]}}"#, vol);
+            self.send_ipc(&cmd);
         }
     }
 
@@ -24,7 +34,7 @@ impl Player {
             .args([
                 "--no-video",
                 "--no-terminal",
-                "--volume=80",
+                &format!("--volume={}", self.volume),
                 &format!("--input-ipc-server={}", self.socket_path),
                 url,
             ])
