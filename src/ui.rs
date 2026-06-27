@@ -28,6 +28,7 @@ fn highlight_match<'a>(text: &str, query: &str) -> Vec<Span<'a>> {
     }
 }
 
+/// Renders the full TUI: station list (left), detail panel (right), and status bar (bottom).
 pub fn render(f: &mut Frame, app: &mut App) {
     let area = f.area();
 

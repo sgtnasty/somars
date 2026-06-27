@@ -3,14 +3,20 @@ use std::os::unix::net::UnixStream;
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 
+/// Manages an `mpv` subprocess and communicates with it via a UNIX IPC socket.
 pub struct Player {
     child: Option<Child>,
     socket_path: String,
+    /// Whether playback is currently paused.
     pub paused: bool,
+    /// Current volume level (0–100).
     pub volume: u8,
 }
 
 impl Player {
+    /// Creates a new `Player` with the default volume (80) and no active subprocess.
+    ///
+    /// The IPC socket path is set to `/tmp/somars-<pid>.sock`.
     pub fn new() -> Self {
         Self {
             child: None,
@@ -20,6 +26,7 @@ impl Player {
         }
     }
 
+    /// Sets the volume (0–100), applying the change immediately if a stream is playing.
     pub fn set_volume(&mut self, vol: u8) {
         self.volume = vol;
         if self.is_playing() {
@@ -28,6 +35,14 @@ impl Player {
         }
     }
 
+    /// Spawns `mpv` to play the given stream URL.
+    ///
+    /// Stops any currently playing stream before starting the new one. mpv is launched
+    /// with `--no-video` and an IPC socket at [`Player::socket_path`] for subsequent control.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `mpv` cannot be spawned.
     pub fn play(&mut self, url: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.stop();
         let child = Command::new("mpv")
@@ -46,6 +61,9 @@ impl Player {
         Ok(())
     }
 
+    /// Toggles pause/resume via the mpv IPC socket.
+    ///
+    /// Has no effect if nothing is playing.
     pub fn toggle_pause(&mut self) {
         if !self.is_playing() {
             return;
@@ -60,6 +78,7 @@ impl Player {
         }
     }
 
+    /// Kills the mpv subprocess and removes the IPC socket file.
     pub fn stop(&mut self) {
         if let Some(mut child) = self.child.take() {
             let _ = child.kill();
@@ -69,11 +88,14 @@ impl Player {
         self.paused = false;
     }
 
+    /// Returns `true` if an mpv subprocess is currently running.
     pub fn is_playing(&self) -> bool {
         self.child.is_some()
     }
 
-    /// Check if mpv subprocess has exited and clean up if so.
+    /// Checks whether the mpv subprocess has exited and cleans up state if so.
+    ///
+    /// Called on every tick to detect streams that end on their own.
     pub fn check_alive(&mut self) {
         if let Some(child) = self.child.as_mut() {
             if let Ok(Some(_)) = child.try_wait() {
@@ -84,6 +106,10 @@ impl Player {
         }
     }
 
+    /// Queries mpv for the current track title via ICY stream metadata.
+    ///
+    /// Returns `None` if no stream is playing, the socket is not yet ready,
+    /// or no ICY title has been received from the stream.
     pub fn get_media_title(&self) -> Option<String> {
         self.query_ipc(r#"{"command":["get_property","metadata/by-key/icy-title"]}"#)
     }

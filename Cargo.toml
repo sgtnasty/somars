@@ -1,10 +1,12 @@
 [package]
 name = "somars"
-version = "1.1.0"
+version = "1.1.1"
 edition = "2024"
 description = "Terminal UI player for SomaFM internet radio"
 license = "MIT"
 repository = "https://codeberg.org/sgtnasty/somars"
+authors = ["Ronaldo Nascimento <sgtnasty@gmail.com>",
+    "Claude <noreply@anthropic.com>"]
 
 [[bin]]
 name = "somars"
