@@ -8,9 +8,11 @@ pub struct App {
     pub player: Player,
     pub status_msg: String,
     pub now_playing_idx: Option<usize>,
+    pub now_playing_title: Option<String>,
     pub error: Option<String>,
     pub filter: String,
     pub filter_active: bool,
+    tick_count: u32,
 }
 
 impl App {
@@ -25,9 +27,11 @@ impl App {
             player: Player::new(),
             status_msg: String::new(),
             now_playing_idx: None,
+            now_playing_title: None,
             error: None,
             filter: String::new(),
             filter_active: false,
+            tick_count: 0,
         }
     }
 
@@ -89,6 +93,7 @@ impl App {
         match self.player.play(&url) {
             Ok(_) => {
                 self.now_playing_idx = Some(ci);
+                self.now_playing_title = None;
                 self.status_msg = format!("Playing: {}", self.channels[ci].title);
                 self.error = None;
             }
@@ -116,6 +121,7 @@ impl App {
     pub fn stop(&mut self) {
         self.player.stop();
         self.now_playing_idx = None;
+        self.now_playing_title = None;
         self.status_msg = "Stopped".into();
     }
 
@@ -162,7 +168,14 @@ impl App {
         self.player.check_alive();
         if !self.player.is_playing() && self.now_playing_idx.is_some() {
             self.now_playing_idx = None;
+            self.now_playing_title = None;
             self.status_msg = "Stream ended".into();
+        }
+        self.tick_count = self.tick_count.wrapping_add(1);
+        if self.player.is_playing() && self.tick_count % 20 == 0 {
+            if let Some(title) = self.player.get_media_title() {
+                self.now_playing_title = Some(title);
+            }
         }
     }
 
@@ -172,6 +185,14 @@ impl App {
             .selected()
             .and_then(|fi| filtered.get(fi))
             .and_then(|&ci| self.channels.get(ci))
+    }
+
+    pub fn selected_channel_idx(&self) -> Option<usize> {
+        let filtered = self.filtered_indices();
+        self.list_state
+            .selected()
+            .and_then(|fi| filtered.get(fi))
+            .copied()
     }
 
     pub fn playback_state(&self) -> PlaybackState {

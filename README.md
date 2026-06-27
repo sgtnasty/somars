@@ -83,8 +83,9 @@ src/
 3. The event loop polls for keystrokes every 100 ms and calls `app.tick()` to detect if mpv has exited.
 4. On `Enter`, `player::Player::play()` spawns `mpv` with `--no-video` and `--input-ipc-server` pointing to a per-process UNIX socket at `/tmp/somars-<pid>.sock`.
 5. Pause/resume and volume changes send JSON commands to the mpv IPC socket (`set_property pause`/`volume`).
-6. Stop kills the mpv child process and removes the socket file.
-7. Filter mode computes `filtered_indices()` on every keypress — a `Vec<usize>` of indices into the full channel list that match the query against title, genre, and description. The `ListState` cursor indexes into this filtered view; `now_playing_idx` always refers to the full list so the playing indicator survives filter changes.
+6. Every ~2 seconds while a station is playing, `app.tick()` queries the IPC socket for `metadata/by-key/icy-title` to get the current song from the stream's ICY metadata. This updates the **Now Playing** field in the detail panel in real time. Before the first successful poll, the field falls back to the `lastPlaying` value from the initial API fetch.
+7. Stop kills the mpv child process and removes the socket file.
+8. Filter mode computes `filtered_indices()` on every keypress — a `Vec<usize>` of indices into the full channel list that match the query against title, genre, and description. The `ListState` cursor indexes into this filtered view; `now_playing_idx` always refers to the full list so the playing indicator survives filter changes.
 
 ## API Schema
 
@@ -106,7 +107,7 @@ Response shape:
       "djmail": "dj@somafm.com",
       "genre": "ambient",
       "listeners": 1899,
-      "lastPlaying": "Artist Name - Track Title",
+      "lastPlaying": "Artist Name - Track Title",  // shown until live ICY metadata arrives
       "image": "https://somafm.com/img3/groovesalad-400.jpg",
       "largeimage": "https://somafm.com/img3/groovesalad-400.jpg",
       "xlimage": "https://somafm.com/img3/groovesalad-1500.jpg",

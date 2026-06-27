@@ -138,6 +138,7 @@ fn render_station_detail(f: &mut Frame, app: &mut App, area: Rect) {
 
     let inner = block.inner(area);
 
+    let selected_idx = app.selected_channel_idx();
     let content: Vec<Line> = if let Some(ch) = app.selected_channel().cloned() {
         let label = || Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
         let mut lines = vec![
@@ -167,12 +168,16 @@ fn render_station_detail(f: &mut Frame, app: &mut App, area: Rect) {
             ]),
         ];
 
-        if let Some(ref np) = ch.last_playing {
+        let live_title = selected_idx
+            .filter(|&i| app.now_playing_idx == Some(i))
+            .and_then(|_| app.now_playing_title.as_deref());
+        let now_playing_text = live_title.or(ch.last_playing.as_deref());
+        if let Some(np) = now_playing_text {
             if !np.is_empty() {
                 lines.push(Line::from(vec![
                     Span::styled("Now Playing: ", label()),
                     Span::styled(
-                        np.clone(),
+                        np.to_owned(),
                         Style::default()
                             .fg(Color::White)
                             .add_modifier(Modifier::ITALIC),

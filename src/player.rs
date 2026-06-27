@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::UnixStream;
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
@@ -82,6 +82,34 @@ impl Player {
                 let _ = std::fs::remove_file(&self.socket_path);
             }
         }
+    }
+
+    pub fn get_media_title(&self) -> Option<String> {
+        self.query_ipc(r#"{"command":["get_property","metadata/by-key/icy-title"]}"#)
+    }
+
+    fn query_ipc(&self, cmd: &str) -> Option<String> {
+        let mut stream = UnixStream::connect(&self.socket_path).ok()?;
+        stream.set_write_timeout(Some(Duration::from_millis(100))).ok()?;
+        stream.set_read_timeout(Some(Duration::from_millis(100))).ok()?;
+        writeln!(stream, "{}", cmd).ok()?;
+        let mut reader = BufReader::new(stream);
+        let mut line = String::new();
+        for _ in 0..10 {
+            line.clear();
+            if reader.read_line(&mut line).ok()? == 0 {
+                return None;
+            }
+            let v: serde_json::Value = serde_json::from_str(line.trim()).ok()?;
+            if v.get("error").is_some() {
+                return if v["error"].as_str() == Some("success") {
+                    v["data"].as_str().map(|s| s.to_owned())
+                } else {
+                    None
+                };
+            }
+        }
+        None
     }
 
     fn send_ipc(&self, cmd: &str) -> bool {
