@@ -234,7 +234,6 @@ fn render_station_detail(f: &mut Frame, app: &mut App, area: Rect) {
 fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
     let (icon, color) = match app.playback_state() {
         PlaybackState::Playing => ("▶", Color::Green),
-        PlaybackState::Paused => ("⏸", Color::Yellow),
         PlaybackState::Stopped => ("■", Color::DarkGray),
     };
 
@@ -252,7 +251,7 @@ fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
         "░".repeat(10 - filled),
     );
 
-    let help_len = if app.filter_active { 52 } else { 80 };
+    let help_len = if app.filter_active { 52 } else { 69 };
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -285,7 +284,7 @@ fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
     let help_text = if app.filter_active {
         "[↑↓] Nav  [↵] Play+Exit  [Esc] Clear  [type] Filter"
     } else {
-        "[↑↓/jk] Nav  [↵] Play  [p] Pause  [s] Stop  [/] Search  [←→] Vol  [q] Quit"
+        "[↑↓/jk] Nav  [↵] Play  [s] Stop  [/] Search  [←→] Vol  [q] Quit"
     };
     let help = Paragraph::new(Line::from(Span::styled(
         help_text,

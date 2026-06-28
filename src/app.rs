@@ -128,24 +128,6 @@ impl App {
         }
     }
 
-    /// Toggles pause/resume on the currently playing stream.
-    ///
-    /// Has no effect if nothing is playing.
-    pub fn toggle_pause(&mut self) {
-        if !self.player.is_playing() {
-            return;
-        }
-        self.player.toggle_pause();
-        if let Some(i) = self.now_playing_idx {
-            let title = self.channels[i].title.clone();
-            if self.player.paused {
-                self.status_msg = format!("Paused: {}", title);
-            } else {
-                self.status_msg = format!("Playing: {}", title);
-            }
-        }
-    }
-
     /// Stops playback and clears all playing state.
     pub fn stop(&mut self) {
         self.player.stop();
@@ -238,23 +220,19 @@ impl App {
 
     /// Returns the current playback state.
     pub fn playback_state(&self) -> PlaybackState {
-        if !self.player.is_playing() {
-            PlaybackState::Stopped
-        } else if self.player.paused {
-            PlaybackState::Paused
-        } else {
+        if self.player.is_playing() {
             PlaybackState::Playing
+        } else {
+            PlaybackState::Stopped
         }
     }
 }
 
-/// The three possible playback states of the player.
+/// The two possible playback states of the player.
 #[derive(PartialEq)]
 pub enum PlaybackState {
     /// No mpv subprocess is running.
     Stopped,
-    /// mpv is running but playback is paused.
-    Paused,
     /// mpv is running and actively playing.
     Playing,
 }

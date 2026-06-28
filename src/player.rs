@@ -7,8 +7,6 @@ use std::time::Duration;
 pub struct Player {
     child: Option<Child>,
     socket_path: String,
-    /// Whether playback is currently paused.
-    pub paused: bool,
     /// Current volume level (0–100).
     pub volume: u8,
 }
@@ -21,7 +19,6 @@ impl Player {
         Self {
             child: None,
             socket_path: format!("/tmp/somars-{}.sock", std::process::id()),
-            paused: false,
             volume: 80,
         }
     }
@@ -57,25 +54,7 @@ impl Player {
             .stderr(Stdio::null())
             .spawn()?;
         self.child = Some(child);
-        self.paused = false;
         Ok(())
-    }
-
-    /// Toggles pause/resume via the mpv IPC socket.
-    ///
-    /// Has no effect if nothing is playing.
-    pub fn toggle_pause(&mut self) {
-        if !self.is_playing() {
-            return;
-        }
-        let cmd = if self.paused {
-            r#"{"command":["set_property","pause",false]}"#
-        } else {
-            r#"{"command":["set_property","pause",true]}"#
-        };
-        if self.send_ipc(cmd) {
-            self.paused = !self.paused;
-        }
     }
 
     /// Kills the mpv subprocess and removes the IPC socket file.
@@ -85,7 +64,6 @@ impl Player {
             let _ = child.wait();
         }
         let _ = std::fs::remove_file(&self.socket_path);
-        self.paused = false;
     }
 
     /// Returns `true` if an mpv subprocess is currently running.
@@ -100,7 +78,6 @@ impl Player {
         if let Some(child) = self.child.as_mut() {
             if let Ok(Some(_)) = child.try_wait() {
                 self.child = None;
-                self.paused = false;
                 let _ = std::fs::remove_file(&self.socket_path);
             }
         }
