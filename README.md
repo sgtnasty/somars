@@ -5,23 +5,6 @@
 
 A terminal UI player for [SomaFM](https://somafm.com) internet radio, written in Rust.
 
-```
- Stations (3/60)        Station Info
-┌──────────────────────┬──────────────────────────────────────────┐
-│ / groove█            │ Title:       Groove Salad                │
-│ > Groove Salad       │ Genre:       ambient                     │
-│   Groove Salad 2     │ DJ:          SomaFM                      │
-│   Groove Salad Clssc │ Listeners:   1899                        │
-│                      │ Now Playing: Artist - Track Name         │
-│                      │ Quality:     highest (MP3)               │
-│                      │                                          │
-│                      │ Description:                             │
-│                      │ A nicely chilled plate of ambient/       │
-│                      │ downtempo beats and grooves.             │
-└──────────────────────┴──────────────────────────────────────────┘
-▶ Playing: Groove Salad  ██████████  80%  [↑↓] Nav  [↵] Play+Exit  [Esc] Clear  [type] Filter
-```
-
 ## Requirements
 
 - [mpv](https://mpv.io/) — used for audio decoding and playback (routes through PipeWire automatically on modern Linux)
