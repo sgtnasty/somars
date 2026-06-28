@@ -50,7 +50,6 @@ cargo run --release
 | `↑` / `k` | Move selection up |
 | `↓` / `j` | Move selection down |
 | `Enter` | Play selected station |
-| `p` | Pause / resume |
 | `s` | Stop playback |
 | `←` / `h` | Volume down 5% |
 | `→` / `l` | Volume up 5% |
@@ -82,7 +81,7 @@ src/
 2. The ratatui TUI is initialized with a crossterm backend (alternate screen, raw mode).
 3. The event loop polls for keystrokes every 100 ms and calls `app.tick()` to detect if mpv has exited.
 4. On `Enter`, `player::Player::play()` spawns `mpv` with `--no-video` and `--input-ipc-server` pointing to a per-process UNIX socket at `/tmp/somars-<pid>.sock`.
-5. Pause/resume and volume changes send JSON commands to the mpv IPC socket (`set_property pause`/`volume`).
+5. Volume changes send JSON commands to the mpv IPC socket (`set_property volume`).
 6. Every ~2 seconds while a station is playing, `app.tick()` queries the IPC socket for `metadata/by-key/icy-title` to get the current song from the stream's ICY metadata. This updates the **Now Playing** field in the detail panel in real time. Before the first successful poll, the field falls back to the `lastPlaying` value from the initial API fetch.
 7. Stop kills the mpv child process and removes the socket file.
 8. Filter mode computes `filtered_indices()` on every keypress — a `Vec<usize>` of indices into the full channel list that match the query against title, genre, and description. The `ListState` cursor indexes into this filtered view; `now_playing_idx` always refers to the full list so the playing indicator survives filter changes.
@@ -112,7 +111,6 @@ flowchart TD
     J -- "/" --> EnterFilter[enter_filter] --> F
     J -- "↑↓ / jk" --> Nav[prev / next] --> F
     J -- "Enter" --> Play[play_selected] --> F
-    J -- "p" --> Pause[toggle_pause] --> F
     J -- "s" --> Stop[stop] --> F
     J -- "← → / hl" --> Vol[volume_down / up] --> F
 ```
