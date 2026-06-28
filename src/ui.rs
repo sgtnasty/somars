@@ -231,12 +231,20 @@ fn render_station_detail(f: &mut Frame, app: &mut App, area: Rect) {
     f.render_widget(paragraph, inner);
 }
 
-fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
-    let (icon, color) = match app.playback_state() {
-        PlaybackState::Playing => ("▶", Color::Green),
-        PlaybackState::Stopped => ("■", Color::DarkGray),
-    };
+const RAINBOW: [Color; 7] = [
+    Color::Red,
+    Color::Yellow,
+    Color::Green,
+    Color::Cyan,
+    Color::Blue,
+    Color::Magenta,
+    Color::LightRed,
+];
 
+fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
+    let playing = app.playback_state() == PlaybackState::Playing;
+
+    let icon = if playing { "▶" } else { "■" };
     let msg = if app.status_msg.is_empty() {
         format!("{} Stopped", icon)
     } else {
@@ -261,11 +269,27 @@ fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
         ])
         .split(area);
 
-    let status = Paragraph::new(Line::from(vec![Span::styled(
-        format!(" {}", msg),
-        Style::default().fg(color),
-    )]));
-    f.render_widget(status, chunks[0]);
+    if playing {
+        let offset = app.tick_count as usize;
+        let text = format!(" {}", msg);
+        let spans: Vec<Span> = text
+            .chars()
+            .enumerate()
+            .map(|(i, c)| {
+                let color = RAINBOW[(i + offset) % RAINBOW.len()];
+                Span::styled(c.to_string(), Style::default().fg(color))
+            })
+            .collect();
+        f.render_widget(Paragraph::new(Line::from(spans)), chunks[0]);
+    } else {
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                format!(" {}", msg),
+                Style::default().fg(Color::DarkGray),
+            ))),
+            chunks[0],
+        );
+    }
 
     let vol_color = if vol >= 80 {
         Color::Yellow

@@ -27,7 +27,7 @@ pub struct App {
     pub filter: String,
     /// Whether filter input mode is active (typing appends to `filter`).
     pub filter_active: bool,
-    tick_count: u32,
+    pub tick_count: u32,
 }
 
 impl App {
